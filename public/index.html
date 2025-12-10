@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #121212;
+            --accent-green: #34c759; /* Not Detected (False) */
+            --accent-red: #ff3b30;   /* Detected (True) */
+            --text-white: #ffffff;
+            --text-gray: #8e8e93;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-white);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            text-align: center;
+            position: relative;
+        }
+
+        /* --- TITLE --- */
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            position: absolute;
+            top: 50px;
+            color: var(--text-white);
+        }
+
+        /* --- CENTRAL STATUS CIRCLE (The Detector) --- */
+        .status-container {
+            position: absolute;
+            width: 300px; /* Base width of the circle */
+            height: 300px;
+            top: 50%;
+            left: 50%;
+            margin-top: -150px;
+            margin-left: -150px;
+            /* No movement transition needed */
+        }
+
+        .status-circle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: var(--accent-green); /* Default: Green (Not Detected) */
+            box-shadow: 0 0 40px rgba(52, 199, 89, 0.8); /* Green glow */
+            transition: all 0.25s ease-out; /* Smooth color change */
+        }
+        
+        /* THE FIXED STATUS TEXT */
+        #status {
+            font-size: 80px; /* Reduced size for longer words */
+            font-weight: 900;
+            color: var(--text-white);
+            position: absolute; 
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            line-height: 1.1;
+        }
+
+        /* Target Class for Detected State (True = Red) */
+        .status-circle.detected {
+            background-color: var(--accent-red);
+            box-shadow: 0 0 40px rgba(255, 59, 48, 0.8);
+        }
+
+        /* --- SECONDARY READOUTS --- */
+        .readout-container {
+            position: absolute;
+            bottom: 100px;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .freq { /* Renamed to .value-readout for better context */
+            font-size: 32px;
+            color: var(--text-gray);
+            font-weight: 400;
+            margin-top: 10px;
+        }
+
+        .footer {
+            color: var(--text-gray);
+            font-size: 14px;
+            position: absolute;
+            bottom: 30px;
+            opacity: 0.6;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="title">Vicky Detector</div>
+
+    <div id="status" class="status-display">CHECKING</div> 
+
+    <div class="status-container">
+        <div id="status-circle" class="status-circle">
+        </div>
+    </div>
+
+    <div class="readout-container">
+        <div id="value-readout" class="freq">...</div>
+    </div>
+    
+    <div class="footer">Real-time status analysis.</div>
+    
+    <script defer src="/__/firebase/12.6.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/12.6.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const statusEl = document.getElementById("status");
+        const valueReadoutEl = document.getElementById("value-readout");
+        const circleEl = document.getElementById("status-circle");
+        
+        // --- FIREBASE AND RENDERING ---
+        const db = firebase.firestore();
+        const detectorDoc = db.collection("detection").doc("current");
+
+        detectorDoc.onSnapshot(snapshot => {
+            const data = snapshot.data();
+            // Assuming the structure is: data.detected (boolean)
+            const isDetected = data && data.detected !== undefined ? data.detected : null;
+            
+            if (isDetected === null) {
+                // Initial or missing data state
+                statusEl.textContent = "CHECKING";
+                valueReadoutEl.textContent = "Waiting for data...";
+                circleEl.classList.remove('detected');
+                circleEl.style.backgroundColor = 'var(--accent-green)'; // Default safe color
+                return;
+            }
+
+            // --- BOOLEAN LOGIC AND RENDERING ---
+            if (isDetected === true) {
+                // State: Detected (True) -> RED
+                statusEl.textContent = "DETECTED";
+                valueReadoutEl.textContent = "Status: TRUE";
+                circleEl.classList.add('detected');
+                circleEl.style.backgroundColor = 'var(--accent-red)';
+            } else {
+                // State: Not Detected (False) -> GREEN
+                statusEl.textContent = "CLEAR";
+                valueReadoutEl.textContent = "Status: FALSE";
+                circleEl.classList.remove('detected');
+                circleEl.style.backgroundColor = 'var(--accent-green)';
+            }
+        });
+    });
+    </script>
+
+</body>
+</html>
